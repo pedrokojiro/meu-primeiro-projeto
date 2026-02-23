@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planilha Interativa de Estudos</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --header: #1f4e78;
+      --header-2: #2f75b5;
+      --line: #dde5ef;
+      --text: #1f2937;
+      --muted: #64748b;
+      --ok-bg: #dff3e2;
+      --ok-text: #116329;
+      --run-bg: #fff2cc;
+      --run-text: #8a6d00;
+      --rev-bg: #dbe8ff;
+      --rev-text: #204a87;
+      --new-bg: #eceff3;
+      --new-text: #4b5563;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #eef4fb 0%, var(--bg) 100%);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(31, 78, 120, 0.08);
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: var(--header);
+    }
+
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: var(--header-2); color: white; }
+    .btn-secondary { background: #e7eef8; color: var(--header); }
+
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: auto;
+      box-shadow: 0 8px 24px rgba(31, 78, 120, 0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: linear-gradient(90deg, var(--header), var(--header-2));
+      color: #fff;
+      text-align: left;
+      padding: 12px 10px;
+      font-size: 0.92rem;
+      border-right: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    tbody td {
+      border-top: 1px solid var(--line);
+      padding: 10px;
+      vertical-align: top;
+      background: #fff;
+    }
+
+    tbody tr:nth-child(2n) td {
+      background: #f9fcff;
+    }
+
+    .semana { width: 90px; text-align: center; font-weight: 700; color: var(--header); }
+    .tema { width: 310px; font-weight: 600; }
+    .tarefas { width: 560px; color: #1f2937; }
+    .status-col { width: 190px; }
+    .progresso-col { width: 170px; }
+
+    .status-select {
+      width: 100%;
+      border: 1px solid #c7d4e4;
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: #fff;
+      font-weight: 600;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      min-width: 110px;
+    }
+
+    .status-nao-iniciada .pill { background: var(--new-bg); color: var(--new-text); }
+    .status-em-andamento .pill { background: var(--run-bg); color: var(--run-text); }
+    .status-revisao .pill { background: var(--rev-bg); color: var(--rev-text); }
+    .status-concluida .pill { background: var(--ok-bg); color: var(--ok-text); }
+
+    .progress-track {
+      width: 100%;
+      height: 20px;
+      border-radius: 999px;
+      background: #e9f0f8;
+      overflow: hidden;
+      border: 1px solid #d6e2ef;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #5f9ad4, #2f75b5);
+      width: 0;
+      transition: width 0.2s ease;
+    }
+
+    .progress-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #103657;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 6px 16px rgba(31, 78, 120, 0.07);
+    }
+
+    .card .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+
+    .card .value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--header);
+    }
+
+    @media (max-width: 960px) {
+      body { padding: 12px; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="title">
+        <h1>Plano de Estudos Interativo (VSCode)</h1>
+        <p>Visual estilo Excel com filtros, status e progresso automático.</p>
+      </div>
+      <div class="actions">
+        <label for="filtroStatus">Filtrar status:</label>
+        <select id="filtroStatus">
+          <option value="todos">Todos</option>
+          <option value="Não iniciada">Não iniciada</option>
+          <option value="Em andamento">Em andamento</option>
+          <option value="Revisão">Revisão</option>
+          <option value="Concluída">Concluída</option>
+        </select>
+        <button class="btn btn-secondary" id="resetBtn">Resetar status</button>
+        <button class="btn btn-primary" id="csvBtn">Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="summary-grid" id="summary"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Semana</th>
+            <th>Disciplina/Tema principal</th>
+            <th>Tarefas</th>
+            <th>Status</th>
+            <th>% conclusão</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "plano_estudos_status_v1";
+
+    const dados = [
+      [1, "Língua Portuguesa", "Estudo de interpretação de textos, ortografia, acentuação, pontuação, estrutura morfossintática e concordância."],
+      [2, "Português e Atualidades", "Revisar crase, regência, sinônimos/antônimos. Leitura diária de notícias sobre cidadania, assistência social, política, economia e tecnologia."],
+      [3, "Direito Administrativo – Conceitos", "Estudar Estado, governo, administração pública, conceito e fontes do direito administrativo. Ler a Lei Complementar 840/2011."],
+      [4, "Direito Administrativo – Atos e Poderes", "Aprofundar atos administrativos: requisitos, atributos, extinção; poderes da Administração; Portaria Conjunta 2/2018 e Lei Distrital 5.184/2013."],
+      [5, "Direito Constitucional – Parte Geral", "Estudar a Lei Orgânica do DF e a Constituição Federal nos temas de assistência social, princípios fundamentais e direitos fundamentais."],
+      [6, "Direito Constitucional – Organização do Estado", "Revisar organização político-administrativa, poderes do Estado, administração pública e funções essenciais à justiça."],
+      [7, "Assistência Social – Bases", "Estudar LOAS (Lei 8.742/1993), PNAS e SUAS; compreender o papel do CNAS e dos serviços socioassistenciais."],
+      [8, "Assistência Social – Serviços e Gestão", "Aprofundar NOB-SUAS, estrutura dos serviços (CRAS, CREAS); estudar gestão de pessoas, mapeamento de processos e administração de materiais."],
+      [9, "Arquivologia e Qualidade no Atendimento", "Estudar princípios de arquivologia, gestão documental, classificação, arquivamento e digitalização. Revisar qualidade no atendimento e trabalho em equipe."],
+      [10, "Gestão de Pessoas e Processos", "Revisar equilíbrio organizacional, motivação, liderança, comportamento organizacional e técnicas de mapeamento e melhoria de processos."],
+      [11, "Temas adicionais – Agente Social", "Estudar PNAN, alimentação saudável nas escolas, CONSEA, SAN e SISAN."],
+      [12, "Temas adicionais – Cuidador Social", "Estudar política nacional do idoso, política para população em situação de rua, Resolução Conjunta 1/2009 e PNCFC."],
+      [13, "Revisão e Simulados", "Revisar todas as disciplinas; resolver simulados completos; ajustar estudo conforme dificuldades identificadas."]
+    ];
+
+    const statusOptions = ["Não iniciada", "Em andamento", "Revisão", "Concluída"];
+    const statusToPercent = {
+      "Não iniciada": 0,
+      "Em andamento": 50,
+      "Revisão": 75,
+      "Concluída": 100
+    };
+
+    const tbody = document.getElementById("tbody");
+    const summary = document.getElementById("summary");
+    const filtroStatus = document.getElementById("filtroStatus");
+
+    function slugStatus(status) {
+      return status
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-");
+    }
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function render() {
+      const state = loadState();
+      const filtro = filtroStatus.value;
+      tbody.innerHTML = "";
+
+      dados.forEach(([semana, tema, tarefas]) => {
+        const status = state[semana] || "Não iniciada";
+        if (filtro !== "todos" && status !== filtro) return;
+
+        const tr = document.createElement("tr");
+        tr.className = `status-${slugStatus(status)}`;
+        const percent = statusToPercent[status] ?? 0;
+
+        tr.innerHTML = `
+          <td class="semana">${semana}</td>
+          <td class="tema">${tema}</td>
+          <td class="tarefas">${tarefas}</td>
+          <td class="status-col">
+            <select class="status-select" data-semana="${semana}">
+              ${statusOptions
+                .map((opt) => `<option value="${opt}" ${opt === status ? "selected" : ""}>${opt}</option>`)
+                .join("")}
+            </select>
+            <div style="margin-top:8px"><span class="pill">${status}</span></div>
+          </td>
+          <td class="progresso-col">
+            <div class="progress-track">
+              <div class="progress-fill" style="width:${percent}%"></div>
+              <div class="progress-label">${percent}%</div>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll(".status-select").forEach((el) => {
+        el.addEventListener("change", (e) => {
+          const semana = e.target.getAttribute("data-semana");
+          const next = e.target.value;
+          const current = loadState();
+          current[semana] = next;
+          saveState(current);
+          render();
+        });
+      });
+
+      renderSummary();
+    }
+
+    function renderSummary() {
+      const state = loadState();
+      const counts = {
+        "Não iniciada": 0,
+        "Em andamento": 0,
+        "Revisão": 0,
+        "Concluída": 0
+      };
+
+      let total = 0;
+      dados.forEach(([semana]) => {
+        const status = state[semana] || "Não iniciada";
+        counts[status] += 1;
+        total += statusToPercent[status] ?? 0;
+      });
+
+      const media = Math.round(total / dados.length);
+
+      const cards = [
+        ["Concluídas", counts["Concluída"]],
+        ["Em andamento", counts["Em andamento"]],
+        ["Revisão", counts["Revisão"]],
+        ["Não iniciadas", counts["Não iniciada"]],
+        ["Progresso médio", `${media}%`]
+      ];
+
+      summary.innerHTML = cards
+        .map(([label, value]) => `
+          <div class="card">
+            <div class="label">${label}</div>
+            <div class="value">${value}</div>
+          </div>
+        `)
+        .join("");
+    }
+
+    function exportCSV() {
+      const state = loadState();
+      const headers = ["Semana", "Disciplina/Tema principal", "Tarefas", "Status", "% conclusão"];
+      const rows = dados.map(([semana, tema, tarefas]) => {
+        const status = state[semana] || "Não iniciada";
+        const percent = statusToPercent[status] ?? 0;
+        return [semana, tema, tarefas, status, percent];
+      });
+
+      const csv = [headers, ...rows]
+        .map((line) => line.map((item) => `"${String(item).replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "plano_estudos_interativo.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+    });
+
+    document.getElementById("csvBtn").addEventListener("click", exportCSV);
+    filtroStatus.addEventListener("change", render);
+
+    render();
+  </script>
+</body>
+</html>
